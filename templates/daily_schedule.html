@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}{{ target_date.strftime('%Y/%m/%d') }} - ToDo App{% endblock %}
+
+{% block content %}
+<!-- 日付ナビゲーション -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <a href="{{ url_for('daily_schedule', date_str=prev_date.isoformat()) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-chevron-left"></i> 前日
+    </a>
+    <h3 class="mb-0">
+        <i class="bi bi-calendar-day"></i>
+        {{ target_date.strftime('%Y年%m月%d日') }}
+        {% set weekdays = ['月', '火', '水', '木', '金', '土', '日'] %}
+        （{{ weekdays[target_date.weekday()] }}）
+        {% if target_date == target_date.today() %}
+        <span class="badge bg-primary">今日</span>
+        {% endif %}
+    </h3>
+    <a href="{{ url_for('daily_schedule', date_str=next_date.isoformat()) }}" class="btn btn-outline-secondary">
+        翌日 <i class="bi bi-chevron-right"></i>
+    </a>
+</div>
+
+<div class="row">
+    <!-- タイムライン -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-clock"></i> タイムライン
+            </div>
+            <div class="card-body p-0">
+                <div class="timeline">
+                    {% for hour in time_slots %}
+                    <div class="timeline-row">
+                        <div class="timeline-time">{{ '%02d' % hour }}:00</div>
+                        <div class="timeline-content">
+                            {% for task in scheduled_tasks %}
+                                {% if task.start_time.hour == hour %}
+                                <div class="scheduled-task" style="
+                                    {% if task.category %}background-color: {{ task.category.color }}20; border-left: 4px solid {{ task.category.color }};{% endif %}
+                                    height: {{ (task.duration_hours * 50)|int }}px;
+                                ">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <strong class="{{ 'text-decoration-line-through' if task.completed }}">
+                                                {{ task.title }}
+                                            </strong>
+                                            <br>
+                                            <small class="text-muted">{{ task.time_range }}</small>
+                                            {% if task.category %}
+                                            <span class="badge" style="background-color: {{ task.category.color }}">
+                                                {{ task.category.name }}
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="btn-group btn-group-sm">
+                                            <form action="{{ url_for('toggle_task', task_id=task.id) }}" method="POST" class="d-inline">
+                                                <input type="hidden" name="redirect" value="schedule">
+                                                <button type="submit" class="btn btn-sm {{ 'btn-success' if task.completed else 'btn-outline-success' }}">
+                                                    <i class="bi bi-check-lg"></i>
+                                                </button>
+                                            </form>
+                                            <a href="{{ url_for('schedule_task', task_id=task.id) }}" class="btn btn-sm btn-outline-secondary">
+                                                <i class="bi bi-clock"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 未スケジュールタスク -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-inbox"></i> 未スケジュール
+            </div>
+            <div class="card-body">
+                {% if unscheduled_tasks %}
+                <div class="list-group list-group-flush">
+                    {% for task in unscheduled_tasks %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <div>
+                            <span class="badge bg-{{ task.priority_class }} me-1">{{ task.priority_label }}</span>
+                            {{ task.title }}
+                            {% if task.is_parent %}
+                            <small class="text-muted">({{ task.progress }}%)</small>
+                            {% endif %}
+                        </div>
+                        <a href="{{ url_for('schedule_task', task_id=task.id) }}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-plus"></i> 追加
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center mb-0">
+                    <i class="bi bi-check-circle"></i> すべてスケジュール済み
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 今日のサマリー -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <i class="bi bi-bar-chart"></i> 今日のサマリー
+            </div>
+            <div class="card-body">
+                <p class="mb-1">予定タスク: <strong>{{ scheduled_tasks|length }}</strong> 件</p>
+                <p class="mb-0">完了: <strong>{{ scheduled_tasks|selectattr('completed')|list|length }}</strong> 件</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+}
+
+.timeline-row {
+    display: flex;
+    min-height: 50px;
+    border-bottom: 1px solid #eee;
+}
+
+.timeline-time {
+    width: 60px;
+    padding: 8px;
+    text-align: right;
+    color: #666;
+    font-size: 0.85rem;
+    border-right: 2px solid #ddd;
+    flex-shrink: 0;
+}
+
+.timeline-content {
+    flex: 1;
+    padding: 4px 8px;
+    position: relative;
+    min-height: 50px;
+}
+
+.scheduled-task {
+    background-color: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    border-radius: 4px;
+    padding: 8px;
+    margin: 2px 0;
+    min-height: 46px;
+}
+</style>
+{% endblock %}

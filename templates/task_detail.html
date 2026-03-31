@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}{{ task.title }} - ToDo App{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('tasks') }}" class="text-decoration-none">
+        <i class="bi bi-arrow-left"></i> タスク一覧に戻る
+    </a>
+</div>
+
+<!-- 親タスク情報 -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="mb-0 {{ 'text-decoration-line-through text-muted' if task.completed }}">
+            {{ task.title }}
+        </h4>
+        <div>
+            <span class="badge bg-{{ task.priority_class }}">{{ task.priority_label }}</span>
+            {% if task.category %}
+            <span class="badge" style="background-color: {{ task.category.color }}">
+                {{ task.category.name }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        {% if task.description %}
+        <p class="card-text">{{ task.description }}</p>
+        {% endif %}
+
+        <div class="row text-muted small">
+            {% if task.due_date %}
+            <div class="col-auto">
+                <i class="bi bi-calendar"></i>
+                期限: <span class="{{ 'text-danger fw-bold' if task.is_overdue }}">
+                    {{ task.due_date.strftime('%Y/%m/%d') }}
+                    {% if task.is_overdue %}(期限切れ){% endif %}
+                </span>
+            </div>
+            {% endif %}
+            <div class="col-auto">
+                <i class="bi bi-clock"></i>
+                作成: {{ task.created_at.strftime('%Y/%m/%d %H:%M') }}
+            </div>
+        </div>
+
+        <!-- 進捗バー -->
+        {% if task.is_parent %}
+        <div class="mt-3">
+            <div class="d-flex justify-content-between small mb-1">
+                <span>進捗</span>
+                <span>{{ task.completed_subtask_count }}/{{ task.subtask_count }} ({{ task.progress }}%)</span>
+            </div>
+            <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-success" style="width: {{ task.progress }}%"></div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    <div class="card-footer">
+        <a href="{{ url_for('edit_task', task_id=task.id) }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-pencil"></i> 編集
+        </a>
+        <form action="{{ url_for('toggle_task', task_id=task.id) }}" method="POST" class="d-inline">
+            <button type="submit" class="btn btn-sm {{ 'btn-outline-secondary' if task.completed else 'btn-success' }}">
+                <i class="bi {{ 'bi-x-circle' if task.completed else 'bi-check-circle' }}"></i>
+                {{ '未完了に戻す' if task.completed else '完了にする' }}
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- サブタスク -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5><i class="bi bi-list-nested"></i> サブタスク</h5>
+    <a href="{{ url_for('new_subtask', task_id=task.id) }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg"></i> サブタスク追加
+    </a>
+</div>
+
+{% if task.ordered_subtasks %}
+<div class="list-group">
+    {% for subtask in task.ordered_subtasks %}
+    <div class="list-group-item {{ 'list-group-item-light' if subtask.completed }}">
+        <div class="d-flex align-items-center">
+            <!-- 順序番号 -->
+            <span class="badge bg-secondary me-2">{{ loop.index }}</span>
+
+            <!-- 完了チェック -->
+            <form action="{{ url_for('toggle_subtask', task_id=task.id, subtask_id=subtask.id) }}" method="POST" class="me-3">
+                <button type="submit" class="btn btn-sm {{ 'btn-success' if subtask.completed else 'btn-outline-secondary' }}">
+                    <i class="bi {{ 'bi-check-lg' if subtask.completed else 'bi-circle' }}"></i>
+                </button>
+            </form>
+
+            <!-- サブタスク内容 -->
+            <div class="flex-grow-1">
+                <span class="{{ 'text-decoration-line-through text-muted' if subtask.completed }}">
+                    {{ subtask.title }}
+                </span>
+                {% if subtask.due_date %}
+                <small class="text-muted ms-2 {{ 'text-danger' if subtask.is_overdue }}">
+                    <i class="bi bi-calendar"></i> {{ subtask.due_date.strftime('%m/%d') }}
+                </small>
+                {% endif %}
+            </div>
+
+            <!-- アクション -->
+            <div>
+                <span class="badge bg-{{ subtask.priority_class }} me-2">{{ subtask.priority_label }}</span>
+                <a href="{{ url_for('edit_subtask', task_id=task.id, subtask_id=subtask.id) }}"
+                   class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil"></i>
+                </a>
+                <form action="{{ url_for('delete_task', task_id=subtask.id) }}" method="POST" class="d-inline"
+                      onsubmit="return confirm('このサブタスクを削除しますか？')">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-4 text-muted">
+    <i class="bi bi-inbox display-4"></i>
+    <p class="mt-2">サブタスクがありません</p>
+    <a href="{{ url_for('new_subtask', task_id=task.id) }}" class="btn btn-outline-primary">
+        <i class="bi bi-plus-lg"></i> 最初のサブタスクを追加
+    </a>
+</div>
+{% endif %}
+{% endblock %}

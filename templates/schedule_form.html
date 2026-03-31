@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}スケジュール設定 - ToDo App{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('daily_schedule') }}" class="text-decoration-none">
+        <i class="bi bi-arrow-left"></i> 今日のスケジュールに戻る
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-clock"></i> スケジュール設定</h4>
+            </div>
+            <div class="card-body">
+                <!-- タスク情報 -->
+                <div class="alert alert-light">
+                    <strong>{{ task.title }}</strong>
+                    {% if task.category %}
+                    <span class="badge" style="background-color: {{ task.category.color }}">
+                        {{ task.category.name }}
+                    </span>
+                    {% endif %}
+                    <span class="badge bg-{{ task.priority_class }}">{{ task.priority_label }}</span>
+                </div>
+
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.scheduled_date.label(class="form-label") }}
+                        {{ form.scheduled_date(class="form-control", type="date") }}
+                        {% for error in form.scheduled_date.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            {{ form.start_time.label(class="form-label") }}
+                            {{ form.start_time(class="form-control", type="time") }}
+                            {% for error in form.start_time.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-6 mb-3">
+                            {{ form.end_time.label(class="form-label") }}
+                            {{ form.end_time(class="form-control", type="time") }}
+                            {% for error in form.end_time.errors %}
+                            <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- クイック時間設定 -->
+                    <div class="mb-3">
+                        <label class="form-label">クイック設定</label>
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDuration(30)">30分</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDuration(60)">1時間</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDuration(90)">1.5時間</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setDuration(120)">2時間</button>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            <i class="bi bi-check-lg"></i> 設定
+                        </button>
+                        <a href="{{ url_for('daily_schedule') }}" class="btn btn-secondary">
+                            キャンセル
+                        </a>
+                    </div>
+                </form>
+
+                {% if task.is_scheduled %}
+                <hr>
+                <form action="{{ url_for('unschedule_task', task_id=task.id) }}" method="POST">
+                    <button type="submit" class="btn btn-outline-danger w-100">
+                        <i class="bi bi-x-circle"></i> スケジュールを解除
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function setDuration(minutes) {
+    const startInput = document.querySelector('input[name="start_time"]');
+    const endInput = document.querySelector('input[name="end_time"]');
+
+    if (startInput.value) {
+        const [hours, mins] = startInput.value.split(':').map(Number);
+        const startDate = new Date();
+        startDate.setHours(hours, mins, 0);
+
+        const endDate = new Date(startDate.getTime() + minutes * 60000);
+        const endHours = String(endDate.getHours()).padStart(2, '0');
+        const endMins = String(endDate.getMinutes()).padStart(2, '0');
+
+        endInput.value = `${endHours}:${endMins}`;
+    }
+}
+</script>
+{% endblock %}

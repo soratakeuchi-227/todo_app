@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}カテゴリ管理 - ToDo App{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-tags"></i> カテゴリ管理</h2>
+    <a href="{{ url_for('new_category') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> 新規カテゴリ
+    </a>
+</div>
+
+{% if categories %}
+<div class="row g-3">
+    {% for category in categories %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="badge me-2" style="background-color: {{ category.color }}; width: 24px; height: 24px;"></span>
+                    <h5 class="card-title mb-0">{{ category.name }}</h5>
+                </div>
+                <p class="card-text text-muted small">
+                    {{ category.tasks.count() }} 件のタスク
+                </p>
+            </div>
+            <div class="card-footer bg-transparent">
+                <a href="{{ url_for('edit_category', category_id=category.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil"></i> 編集
+                </a>
+                <form action="{{ url_for('delete_category', category_id=category.id) }}" method="POST" class="d-inline"
+                      onsubmit="return confirm('このカテゴリを削除しますか？関連するタスクのカテゴリは解除されます。')">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i> 削除
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-tags display-1 text-muted"></i>
+    <p class="text-muted mt-3">カテゴリがありません</p>
+    <a href="{{ url_for('new_category') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> 最初のカテゴリを作成
+    </a>
+</div>
+{% endif %}
+{% endblock %}

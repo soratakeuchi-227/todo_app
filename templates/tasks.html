@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}タスク一覧 - ToDo App{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-list-task"></i> タスク一覧</h2>
+    <a href="{{ url_for('new_task') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> 新規タスク
+    </a>
+</div>
+
+<!-- フィルター -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-2 align-items-center">
+            <div class="col-auto">
+                <span class="text-muted">フィルター:</span>
+            </div>
+            <div class="col-auto">
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('tasks', filter='all', category=selected_category) }}"
+                       class="btn btn-sm {{ 'btn-primary' if filter_type == 'all' else 'btn-outline-primary' }}">
+                        すべて
+                    </a>
+                    <a href="{{ url_for('tasks', filter='active', category=selected_category) }}"
+                       class="btn btn-sm {{ 'btn-primary' if filter_type == 'active' else 'btn-outline-primary' }}">
+                        未完了
+                    </a>
+                    <a href="{{ url_for('tasks', filter='completed', category=selected_category) }}"
+                       class="btn btn-sm {{ 'btn-primary' if filter_type == 'completed' else 'btn-outline-primary' }}">
+                        完了済み
+                    </a>
+                </div>
+            </div>
+            {% if categories %}
+            <div class="col-auto">
+                <select class="form-select form-select-sm" onchange="filterByCategory(this.value)">
+                    <option value="">カテゴリ: すべて</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {{ 'selected' if selected_category == cat.id }}>
+                        {{ cat.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- タスクリスト -->
+{% if tasks %}
+<div class="list-group">
+    {% for task in tasks %}
+    <div class="list-group-item list-group-item-action {{ 'list-group-item-light' if task.completed }}">
+        <div class="d-flex align-items-start">
+            <!-- 完了チェック -->
+            <form action="{{ url_for('toggle_task', task_id=task.id) }}" method="POST" class="me-3">
+                <button type="submit" class="btn btn-sm {{ 'btn-success' if task.completed else 'btn-outline-secondary' }}">
+                    <i class="bi {{ 'bi-check-lg' if task.completed else 'bi-circle' }}"></i>
+                </button>
+            </form>
+
+            <!-- タスク内容 -->
+            <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-start">
+                    <a href="{{ url_for('task_detail', task_id=task.id) }}" class="text-decoration-none">
+                        <h5 class="mb-1 {{ 'text-decoration-line-through text-muted' if task.completed }} text-dark">
+                            {{ task.title }}
+                            {% if task.is_parent %}
+                            <i class="bi bi-list-nested text-primary small"></i>
+                            {% endif %}
+                        </h5>
+                    </a>
+                    <div>
+                        <span class="badge bg-{{ task.priority_class }}">{{ task.priority_label }}</span>
+                        {% if task.category %}
+                        <span class="badge" style="background-color: {{ task.category.color }}">
+                            {{ task.category.name }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if task.description %}
+                <p class="mb-1 text-muted small">{{ task.description }}</p>
+                {% endif %}
+
+                <!-- サブタスク進捗バー -->
+                {% if task.is_parent %}
+                <div class="my-2">
+                    <div class="d-flex align-items-center">
+                        <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: {{ task.progress }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ task.completed_subtask_count }}/{{ task.subtask_count }}</small>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        {% if task.due_date %}
+                        <span class="{{ 'text-danger fw-bold' if task.is_overdue }}">
+                            <i class="bi bi-calendar"></i>
+                            {{ task.due_date.strftime('%Y/%m/%d') }}
+                            {% if task.is_overdue %}(期限切れ){% endif %}
+                        </span>
+                        {% endif %}
+                    </small>
+
+                    <div>
+                        <a href="{{ url_for('task_detail', task_id=task.id) }}" class="btn btn-sm btn-outline-info"
+                           title="詳細・サブタスク">
+                            <i class="bi bi-list-nested"></i>
+                        </a>
+                        <a href="{{ url_for('edit_task', task_id=task.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <form action="{{ url_for('delete_task', task_id=task.id) }}" method="POST" class="d-inline"
+                              onsubmit="return confirm('このタスクを削除しますか？')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-inbox display-1 text-muted"></i>
+    <p class="text-muted mt-3">タスクがありません</p>
+    <a href="{{ url_for('new_task') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> 最初のタスクを作成
+    </a>
+</div>
+{% endif %}
+
+<script>
+function filterByCategory(categoryId) {
+    const url = new URL(window.location.href);
+    if (categoryId) {
+        url.searchParams.set('category', categoryId);
+    } else {
+        url.searchParams.delete('category');
+    }
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}
